@@ -43,7 +43,7 @@ const UserModel = sequelize.define(
     },
 
     role: {
-      type: DataTypes.ENUM("ADMIN", "CUSTOMER"),
+      type: DataTypes.ENUM("ADMIN", "CUSTOMER",),
       defaultValue: "CUSTOMER",
     },
 
