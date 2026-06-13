@@ -3,35 +3,49 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../config/db.js";
 
-const FlatModel = sequelize.define("Flat", {
-  id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true,
-  },
+const FlatModel = sequelize.define(
+  "Flat",
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+    },
 
-  block: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
+    blockId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
 
-  flatNumber: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
+    flatNumber: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
 
-  floor: {
-    type: DataTypes.INTEGER,
-  },
+    floor: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
 
-  parkingSlot: {
-    type: DataTypes.STRING,
-  },
+    parkingSlot: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
 
-  isOccupied: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false,
+    bhkType: {
+      type: DataTypes.ENUM("1BHK", "2BHK", "3BHK", "4BHK"),
+      defaultValue: "2BHK",
+    },
+
+    isOccupied: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
   },
-});
+  {
+    tableName: "flats",
+    timestamps: true,
+  }
+);
 
 export default FlatModel;

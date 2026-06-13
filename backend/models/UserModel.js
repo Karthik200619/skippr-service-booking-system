@@ -40,13 +40,16 @@ const UserModel = sequelize.define(
     profileImageUrl: {
       type: DataTypes.STRING,
       allowNull: true,
-      defaultValue:
-        "https://ui-avatars.com/api/?name=User&background=random",
     },
 
     role: {
       type: DataTypes.ENUM("ADMIN", "CUSTOMER"),
       defaultValue: "CUSTOMER",
+    },
+
+    flatId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
     },
 
     isVerified: {
@@ -60,8 +63,8 @@ const UserModel = sequelize.define(
     },
   },
   {
-    timestamps: true,
     tableName: "users",
+    timestamps: true,
   }
 );
 
