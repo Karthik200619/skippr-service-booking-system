@@ -4,6 +4,7 @@ import UserModel from "./UserModel.js";
 import SlotModel from './SlotModel.js'
 import BookingModel from "./BookingModel.js";
 import ServiceModel from "./ServiceModel.js";
+import OtpModel from "./OtpModel.js";
 
 // Block -> Flats
 BlockModel.hasMany(FlatModel, {
@@ -47,4 +48,4 @@ BookingModel.belongsTo(SlotModel,{
     foreignKey:"slotId"
 });
 
-export { BlockModel, FlatModel, UserModel };
+export { BlockModel, FlatModel, UserModel, OtpModel };

@@ -8,6 +8,7 @@ import Unauthorized from "./components/Unauthorized";
 import NotFound from "./components/NotFound";
 import RootLaylout from "./components/RootLaylout";
 import ProtectedRoute from "./components/ProtectedRoute";
+import VerifyEmail from "./components/VerifyEmail";
 import { createBrowserRouter, RouterProvider } from "react-router";
 
 const router = createBrowserRouter([
@@ -26,6 +27,10 @@ const router = createBrowserRouter([
       { 
         path: "/register", 
         element: <Register /> 
+      },
+      { 
+        path: "/verify-email", 
+        element: <VerifyEmail /> 
       },
       {
         path: "/customer",

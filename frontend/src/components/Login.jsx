@@ -67,9 +67,20 @@ function Login() {
         </h2>
 
         {error&&(
-          <p className={errorClass}>
-            {error}
-          </p>
+          <div className="mb-4">
+            <p className={errorClass}>
+              {error}
+            </p>
+            {error.toLowerCase().includes("verify") && (
+              <button
+                type="button"
+                onClick={() => navigate("/verify-email")}
+                className="mt-2 text-sm text-violet-600 hover:text-violet-500 font-medium underline"
+              >
+                Go to Verification Page
+              </button>
+            )}
+          </div>
         )}
 
         <form onSubmit={handleSubmit(onUserLogin)}>

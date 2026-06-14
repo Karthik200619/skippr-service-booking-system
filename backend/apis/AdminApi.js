@@ -2,6 +2,7 @@ import exp from 'express'
 export const AdminApi = exp.Router()
 
 import { verifyToken } from '../middleware/verifyToken.js'
+import { Op } from 'sequelize'
 
 import BlockModel from '../models/BlockModel.js'
 import FlatModel from '../models/FlatModel.js'
@@ -9,6 +10,7 @@ import BookingModel from '../models/BookingModel.js'
 import UserModel from '../models/UserModel.js'
 import ServiceModel from '../models/ServiceModel.js'
 import SlotModel from '../models/SlotModel.js'
+import { sendWhatsAppMessage } from '../service/whatsappService.js'
 
 // Create Block
 AdminApi.post("/block",verifyToken("ADMIN"),async(req,res)=>{
@@ -163,6 +165,20 @@ AdminApi.patch("/bookings/:bookingId/approve",verifyToken("ADMIN"),async(req,res
     // save changes
     await booking.save();
 
+    // Send WhatsApp notification
+    try {
+        const user = await UserModel.findByPk(booking.userId);
+        const service = await ServiceModel.findByPk(booking.serviceId);
+        const slot = await SlotModel.findByPk(booking.slotId);
+
+        if (user && service && slot) {
+            const message = `Hello ${user.fullName},\n\nYour booking for ${service.name} on ${booking.bookingDate} (${slot.startTime} - ${slot.endTime}) has been APPROVED by the admin.\n\nEnjoy your service!`;
+            await sendWhatsAppMessage(user.mobile, message);
+        }
+    } catch (wsErr) {
+        console.error("Failed to send WhatsApp message for approval:", wsErr);
+    }
+
     // return response
     res.status(200).json({
         message:"Booking approved"
@@ -193,8 +209,64 @@ AdminApi.patch("/bookings/:bookingId/reject",verifyToken("ADMIN"),async(req,res)
     // save changes
     await booking.save();
 
+    // Send WhatsApp notification
+    try {
+        const user = await UserModel.findByPk(booking.userId);
+        const service = await ServiceModel.findByPk(booking.serviceId);
+        const slot = await SlotModel.findByPk(booking.slotId);
+
+        if (user && service && slot) {
+            const message = `Hello ${user.fullName},\n\nYour booking for ${service.name} on ${booking.bookingDate} (${slot.startTime} - ${slot.endTime}) has been REJECTED.`;
+            await sendWhatsAppMessage(user.mobile, message);
+        }
+    } catch (wsErr) {
+        console.error("Failed to send WhatsApp message for rejection:", wsErr);
+    }
+
     // return response
     res.status(200).json({
         message:"Booking rejected"
+    });
+});
+
+// Reject All Others for the same slot
+AdminApi.patch("/bookings/:bookingId/reject-others", verifyToken("ADMIN"), async(req, res) => {
+    const booking = await BookingModel.findByPk(req.params.bookingId);
+
+    if (!booking) {
+        throw new Error("Booking not found");
+    }
+
+    // Find all other pending bookings for the same service, slot, and date
+    const otherPendingBookings = await BookingModel.findAll({
+        where: {
+            serviceId: booking.serviceId,
+            slotId: booking.slotId,
+            bookingDate: booking.bookingDate,
+            status: "PENDING",
+            id: { [Op.ne]: booking.id }
+        },
+        include: [UserModel, ServiceModel, SlotModel]
+    });
+
+    let rejectedCount = 0;
+    for (const otherBooking of otherPendingBookings) {
+        otherBooking.status = "REJECTED";
+        await otherBooking.save();
+        rejectedCount++;
+
+        // Send WhatsApp notification
+        if (otherBooking.User) {
+            const message = `Hello ${otherBooking.User.fullName},\n\nYour booking for ${otherBooking.Service?.name || "service"} on ${otherBooking.bookingDate} (${otherBooking.Slot?.startTime} - ${otherBooking.Slot?.endTime}) has been REJECTED.`;
+            try {
+                await sendWhatsAppMessage(otherBooking.User.mobile, message);
+            } catch (wsErr) {
+                console.error(`Failed to send WhatsApp message to ${otherBooking.User.mobile}:`, wsErr);
+            }
+        }
+    }
+
+    res.status(200).json({
+        message: `Rejected all other pending bookings (${rejectedCount}) for this slot.`
     });
 });

@@ -10,9 +10,14 @@ const OtpModel = sequelize.define("Otp", {
     autoIncrement: true,
   },
 
-  mobile: {
+  email: {
     type: DataTypes.STRING,
     allowNull: false,
+  },
+
+  mobile: {
+    type: DataTypes.STRING,
+    allowNull: true,
   },
 
   otp: {

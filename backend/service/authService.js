@@ -43,6 +43,12 @@ export const authLogin = async (loginObj) => {
         err.status = 401;
         throw err;
     }
+    // check if user is verified
+    if (!user.isVerified) {
+        const err = new Error("Account not verified. Please verify your email first.");
+        err.status = 403;
+        throw err;
+    }
     // check is user is not blocked
     if (!user.isActive) {
         const err = new Error("Account blocked");

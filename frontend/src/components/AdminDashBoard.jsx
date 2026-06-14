@@ -101,10 +101,11 @@ function AdminDashBoard() {
     setError(null);
     try {
       await axios.patch(`/admin-api/bookings/${bookingId}/${action}`);
-      showMessage(`Booking ${action}ed successfully.`);
+      const actionMsg = action === "reject-others" ? "Other bookings rejected" : `Booking ${action}ed`;
+      showMessage(`${actionMsg} successfully.`);
       loadBookings(statusFilter);
     } catch (err) {
-      setError(err.response?.data?.message || `Unable to ${action} booking`);
+      setError(err.response?.data?.message || `Unable to perform ${action} action`);
     } finally {
       setLoading(false);
     }
@@ -331,6 +332,14 @@ function AdminDashBoard() {
                           >
                             Reject
                           </button>
+                          {booking.status === "APPROVED" && (
+                            <button
+                              onClick={() => updateBooking(booking.id, "reject-others")}
+                              className="rounded-full bg-slate-800 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-900"
+                            >
+                              Reject Others
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

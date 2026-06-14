@@ -60,7 +60,7 @@ function Register() {
       );
 
       if(res.status===201){
-        navigate("/login");
+        navigate("/verify-email", { state: { email: newUser.email } });
       }
 
     }catch(err){
