@@ -24,10 +24,27 @@ function AdminUsers() {
     flatId: ""
   });
 
+  // Filter States
+  const [filterName, setFilterName] = useState("");
+  const [filterBlockId, setFilterBlockId] = useState("");
+  const [filterFlatId, setFilterFlatId] = useState("");
+  const [filterFlats, setFilterFlats] = useState([]);
+
+  // Pagination States
+  const [nextCursor, setNextCursor] = useState(null);
+  const [hasNextPage, setHasNextPage] = useState(false);
+
   useEffect(() => {
-    loadUsers("PENDING");
     fetchBlocks();
   }, []);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      loadUsers(true);
+    }, 300);
+
+    return () => clearTimeout(handler);
+  }, [statusFilter, filterName, filterBlockId, filterFlatId]);
 
   const fetchBlocks = async () => {
     try {
@@ -43,12 +60,45 @@ function AdminUsers() {
     setTimeout(() => setMessage(null), 4000);
   };
 
-  const loadUsers = async (status) => {
-    setFetching(true);
+  const loadUsers = async (reset = false, customCursor = null) => {
+    if (reset) {
+      setFetching(true);
+    }
+    setError(null);
     try {
-      const query = status && status !== "ALL" ? `?approvalStatus=${status}` : "";
-      const res = await axios.get(`/admin-api/users${query}`);
-      setUsers(res.data.payload.users || []);
+      const params = new URLSearchParams();
+      if (statusFilter && statusFilter !== "ALL") {
+        params.append("approvalStatus", statusFilter);
+      }
+      if (filterName.trim()) {
+        params.append("name", filterName.trim());
+      }
+      if (filterBlockId) {
+        params.append("blockId", filterBlockId);
+      }
+      if (filterFlatId) {
+        params.append("flatId", filterFlatId);
+      }
+
+      // Cursor calculation
+      const cursorVal = customCursor !== null ? customCursor : (reset ? "" : nextCursor);
+      if (cursorVal) {
+        params.append("cursor", cursorVal);
+      }
+      params.append("limit", "10");
+
+      const res = await axios.get(`/admin-api/users?${params.toString()}`);
+      const fetchedUsers = res.data.payload.users || [];
+      const hasNext = res.data.payload.hasNextPage || false;
+      const nextC = res.data.payload.nextCursor || null;
+
+      if (reset || cursorVal === "") {
+        setUsers(fetchedUsers);
+      } else {
+        setUsers(prev => [...prev, ...fetchedUsers]);
+      }
+      setNextCursor(nextC);
+      setHasNextPage(hasNext);
     } catch (err) {
       setError(err.response?.data?.message || "Unable to load residents list");
     } finally {
@@ -63,7 +113,7 @@ function AdminUsers() {
       await axios.patch(`/admin-api/users/${userId}/${action}`);
       toast.success(`Resident registration request ${action}ed!`);
       showMessage(`Resident ${action}ed successfully.`);
-      loadUsers(statusFilter);
+      loadUsers(true);
     } catch (err) {
       setError(err.response?.data?.message || `Unable to ${action} resident registration`);
       toast.error(err.response?.data?.message || `Failed to ${action} resident`);
@@ -144,13 +194,34 @@ function AdminUsers() {
       toast.success("Resident details updated successfully!");
       setIsEditModalOpen(false);
       setEditingResident(null);
-      loadUsers(statusFilter);
+      loadUsers(true);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to update resident details");
       toast.error(err.response?.data?.message || "Failed to update resident");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleFilterBlockChange = async (blockId) => {
+    setFilterBlockId(blockId);
+    setFilterFlatId("");
+    setFilterFlats([]);
+    if (blockId) {
+      try {
+        const res = await axios.get(`/common-api/flats/by-block/${blockId}`);
+        setFilterFlats(res.data.payload.flats || []);
+      } catch (err) {
+        console.error("Failed to load filter flats:", err);
+      }
+    }
+  };
+
+  const handleClearFilters = () => {
+    setFilterName("");
+    setFilterBlockId("");
+    setFilterFlatId("");
+    setFilterFlats([]);
   };
 
   return (
@@ -175,7 +246,6 @@ function AdminUsers() {
                 key={status}
                 onClick={() => {
                   setStatusFilter(status);
-                  loadUsers(status);
                 }}
                 className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
                   statusFilter === status ? "bg-violet-600 text-white shadow-md shadow-violet-100" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
@@ -184,6 +254,62 @@ function AdminUsers() {
                 {status}
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* Filters Section */}
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-4 border-t border-slate-150 pt-6">
+          {/* Name Search */}
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-650">Search Name</label>
+            <input
+              type="text"
+              placeholder="Search by name..."
+              value={filterName}
+              onChange={(e) => setFilterName(e.target.value)}
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm focus:border-violet-500 focus:outline-none transition-all shadow-sm"
+            />
+          </div>
+
+          {/* Block Filter */}
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-650">Block</label>
+            <select
+              value={filterBlockId}
+              onChange={(e) => handleFilterBlockChange(e.target.value)}
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm focus:border-violet-500 focus:outline-none transition-all shadow-sm"
+            >
+              <option value="">All Blocks</option>
+              {blocks.map((b) => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Flat Filter */}
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-650">Flat</label>
+            <select
+              value={filterFlatId}
+              disabled={!filterBlockId}
+              onChange={(e) => setFilterFlatId(e.target.value)}
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm focus:border-violet-500 focus:outline-none transition-all shadow-sm disabled:bg-slate-50 disabled:cursor-not-allowed"
+            >
+              <option value="">All Flats</option>
+              {filterFlats.map((f) => (
+                <option key={f.id} value={f.id}>{f.flatNumber} ({f.bhkType})</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Clear Filters Button */}
+          <div className="flex items-end">
+            <button
+              onClick={handleClearFilters}
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 transition shadow-sm cursor-pointer"
+            >
+              Clear Filters
+            </button>
           </div>
         </div>
 
@@ -284,21 +410,21 @@ function AdminUsers() {
                       <div className="flex flex-wrap gap-2">
                         <button
                           onClick={() => openEditModal(resident)}
-                          className="rounded-full bg-violet-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-violet-750"
+                          className="rounded-full bg-violet-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-violet-750 cursor-pointer"
                         >
                           Edit
                         </button>
                         <button
                           onClick={() => handleUpdateStatus(resident.id, "approve")}
                           disabled={resident.approvalStatus !== "PENDING" || loading}
-                          className="rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+                          className="rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 cursor-pointer"
                         >
                           Approve
                         </button>
                         <button
                           onClick={() => handleUpdateStatus(resident.id, "reject")}
                           disabled={resident.approvalStatus !== "PENDING" || loading}
-                          className="rounded-full bg-rose-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+                          className="rounded-full bg-rose-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 cursor-pointer"
                         >
                           Reject
                         </button>
@@ -310,6 +436,17 @@ function AdminUsers() {
             </tbody>
           </table>
         </div>
+
+        {hasNextPage && (
+          <div className="mt-6 flex justify-center border-t border-slate-100 pt-6">
+            <button
+              onClick={() => loadUsers(false)}
+              className="rounded-full bg-violet-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-violet-100 hover:bg-violet-750 transition cursor-pointer animate-fade-in"
+            >
+              Load More
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Edit Resident Details Modal */}

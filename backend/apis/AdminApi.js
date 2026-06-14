@@ -12,6 +12,7 @@ import ServiceModel from '../models/ServiceModel.js'
 import SlotModel from '../models/SlotModel.js'
 import { sendWhatsAppMessage } from '../service/whatsappService.js'
 import HelpQueryModel from '../models/HelpQueryModel.js'
+import OtpModel from '../models/OtpModel.js'
 
 // Create Block
 AdminApi.post("/block",verifyToken("ADMIN"),async(req,res)=>{
@@ -279,24 +280,70 @@ AdminApi.patch("/bookings/:bookingId/reject-others", verifyToken("ADMIN"), async
     });
 });
 
-// Get customer users with filter
+// Get customer users with filter, cursor-based pagination and search
 AdminApi.get("/users", verifyToken("ADMIN"), async (req, res) => {
     try {
+        const { approvalStatus, name, blockId, flatId, cursor, limit = 10 } = req.query;
+
         const where = { role: "CUSTOMER" };
-        if (req.query.approvalStatus && req.query.approvalStatus !== "ALL") {
-            where.approvalStatus = req.query.approvalStatus;
+
+        if (approvalStatus && approvalStatus !== "ALL") {
+            where.approvalStatus = approvalStatus;
         }
+
+        if (name) {
+            where.fullName = { [Op.iLike]: `%${name}%` };
+        }
+
+        if (cursor) {
+            where.id = { [Op.lt]: parseInt(cursor) };
+        }
+
+        const flatWhere = {};
+        if (flatId) {
+            flatWhere.id = parseInt(flatId);
+        }
+        if (blockId) {
+            flatWhere.blockId = parseInt(blockId);
+        }
+
+        const parsedLimit = parseInt(limit);
         const users = await UserModel.findAll({
             where,
             include: [
                 {
                     model: FlatModel,
                     as: "flat",
-                    include: ["block"]
+                    where: Object.keys(flatWhere).length > 0 ? flatWhere : undefined,
+                    required: !!(flatId || blockId),
+                    include: [
+                        {
+                            model: BlockModel,
+                            as: "block"
+                        }
+                    ]
                 }
-            ]
+            ],
+            order: [["id", "DESC"]],
+            limit: parsedLimit + 1
         });
-        res.status(200).json({ payload: { users } });
+
+        let hasNextPage = false;
+        let nextCursor = null;
+
+        if (users.length > parsedLimit) {
+            hasNextPage = true;
+            const popped = users.pop();
+            nextCursor = popped.id;
+        }
+
+        res.status(200).json({
+            payload: {
+                users,
+                nextCursor,
+                hasNextPage
+            }
+        });
     } catch (error) {
         res.status(500).json({ message: "Failed to fetch users", error: error.message });
     }
@@ -317,16 +364,27 @@ AdminApi.patch("/users/:userId/approve", verifyToken("ADMIN"), async (req, res) 
     }
 });
 
-// Reject User Registration
+// Reject User Registration (Deletes record from database)
 AdminApi.patch("/users/:userId/reject", verifyToken("ADMIN"), async (req, res) => {
     try {
         const user = await UserModel.findByPk(req.params.userId);
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
-        user.approvalStatus = "REJECTED";
-        await user.save();
-        res.status(200).json({ message: "User rejected successfully" });
+
+        // Delete any related OTP records
+        await OtpModel.destroy({
+            where: {
+                [Op.or]: [
+                    { email: user.email },
+                    { mobile: user.mobile }
+                ]
+            }
+        });
+
+        // Delete the user record completely
+        await user.destroy();
+        res.status(200).json({ message: "User registration rejected and record deleted from database successfully" });
     } catch (error) {
         res.status(500).json({ message: "Failed to reject user", error: error.message });
     }
