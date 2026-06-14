@@ -1,36 +1,55 @@
-import React from 'react'
-import Home from './components/Home'
-import Login from './components/Login'
-import Register from './components/Register'
-import { createBrowserRouter,RouterProvider } from 'react-router'
+import React from "react";
+import Home from "./components/Home";
+import Login from "./components/Login";
+import Register from "./components/Register";
+import UserDashBaord from "./components/UserDashBaord";
+import AdminDashBoard from "./components/AdminDashBoard";
+import Unauthorized from "./components/Unauthorized";
+import RootLaylout from "./components/RootLaylout";
+import ProtectedRoute from "./components/ProtectedRoute";
+import { createBrowserRouter, RouterProvider } from "react-router";
 
-
-const router = createBrowserRouter([{
+const router = createBrowserRouter([
+  {
     path: "/",
-    element: <RootLayout />,
+    element: <RootLaylout />,
     children: [
-      {
-        path: "/",
-        element: <Home/>
+      { 
+        path: "/", 
+        element: <Home /> 
+      },
+      { 
+        path: "/login", 
+        element: <Login /> 
+      },
+      { 
+        path: "/register", 
+        element: <Register /> 
       },
       {
-        path: "/login",
-        element: <Login/>
+        path: "/customer",
+        element: (
+          <ProtectedRoute allowedRoles={["CUSTOMER"]}>
+            <UserDashBaord />
+          </ProtectedRoute>
+        ),
       },
       {
-        path: "/register",
-        element: <Register/>
+        path: "/admin",
+        element: (
+          <ProtectedRoute allowedRoles={["ADMIN"]}>
+            <AdminDashBoard />
+          </ProtectedRoute>
+        ),
       },
-      
-    ]
-  }])
-
+      { path: "/unauthorized", element: <Unauthorized /> },
+      { path: "*", element: <Unauthorized /> },
+    ],
+  },
+]);
 
 function App() {
-  
-  return (
-    <RouterProvider router={router} />
-  )
+  return <RouterProvider router={router} />;
 }
 
-export default App
+export default App;

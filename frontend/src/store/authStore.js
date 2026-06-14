@@ -1,13 +1,19 @@
+// to reduce the boiler plate code and implemnetation instead of Context API
+// I am using the Zustand Store 
 import { create } from "zustand";
-import axiosInstance from "../api/axios.js";
+import axios from 'axios';
 
 export const useAuth = create((set) => ({
-
+    // define the states
     currentUser: null,
     loading: false,
     isAuthenticated: false,
     error: null,
 
+    clearError: () => {
+        set({ error: null });
+    },
+    // login Object 
     // Login
     login: async (loginObj) => {
         try {
@@ -16,27 +22,27 @@ export const useAuth = create((set) => ({
                 loading: true,
                 error: null
             });
-
-            const res = await axiosInstance.post(
-                "/common-api/login",
-                loginObj
-            );
-
+            // make a call to login route
+            const res = await axios.post("/common-api/login",loginObj);
+            // if we get vaild res add the user to currentUser of Global store
             set({
-                loading: false,
+                currentUser: res.data.payload.user,
                 isAuthenticated: true,
-                currentUser: res.data.payload.user
+                loading: false,
+                error: null
             });
 
             return true;
-
+            // if err occurs
         } catch (err) {
-
+            // if error occured set the currentUser state and isAuthenticated to null
             set({
-                loading: false,
-                isAuthenticated: false,
                 currentUser: null,
-                error: err.response?.data?.message || "Login failed"
+                isAuthenticated: false,
+                loading: false,
+                error:
+                    err.response?.data?.message ||
+                    "Login failed"
             });
 
             return false;
@@ -44,6 +50,8 @@ export const useAuth = create((set) => ({
     },
 
     // Register
+    // here since we are using form data 
+    // 
     register: async (formData) => {
         try {
 
@@ -52,9 +60,7 @@ export const useAuth = create((set) => ({
                 error: null
             });
 
-            const res = await axiosInstance.post(
-                "/user-api/register",
-                formData,
+            const res = await axios.post("/user-api/register",formData,
                 {
                     headers: {
                         "Content-Type": "multipart/form-data"
@@ -63,7 +69,8 @@ export const useAuth = create((set) => ({
             );
 
             set({
-                loading: false
+                loading: false,
+                error: null
             });
 
             return res.data;
@@ -72,7 +79,9 @@ export const useAuth = create((set) => ({
 
             set({
                 loading: false,
-                error: err.response?.data?.message || "Registration failed"
+                error:
+                    err.response?.data?.message ||
+                    "Registration failed"
             });
 
             return null;
@@ -88,14 +97,13 @@ export const useAuth = create((set) => ({
                 error: null
             });
 
-            await axiosInstance.post(
-                "/common-api/logout"
-            );
+            await axios.post("/common-api/logout");
 
             set({
                 currentUser: null,
                 isAuthenticated: false,
-                loading: false
+                loading: false,
+                error: null
             });
 
         } catch (err) {
@@ -104,25 +112,28 @@ export const useAuth = create((set) => ({
                 currentUser: null,
                 isAuthenticated: false,
                 loading: false,
-                error: err.response?.data?.message || "Logout failed"
+                error:
+                    err.response?.data?.message ||
+                    "Logout failed"
             });
         }
     },
 
-    // Restore Login
+    // Check Auth
     checkAuth: async () => {
         try {
 
-            set({ loading: true });
+            set({
+                loading: true
+            });
 
-            const res = await axiosInstance.get(
-                "/common-api/check-auth"
-            );
+            const res = await axios.get("/common-api/check-auth");
 
             set({
                 currentUser: res.data.payload.user,
                 isAuthenticated: true,
-                loading: false
+                loading: false,
+                error: null
             });
 
         } catch (err) {

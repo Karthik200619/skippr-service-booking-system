@@ -3,7 +3,8 @@ export const UserApi = exp.Router()
 import { hash } from 'bcryptjs'
 import UserModel from '../models/UserModel.js';
 import { Op } from "sequelize";
-
+import { upload } from '../config/multer.js';
+import { verifyToken } from '../middleware/verifyToken.js';
 
 
 UserApi.post("/register", upload.single("profileImage"), async (req, res) => {

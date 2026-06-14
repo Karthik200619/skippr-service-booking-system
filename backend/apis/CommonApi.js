@@ -1,5 +1,6 @@
 import exp from "express";
 import { authLogin } from "../service/authService.js";
+import { verifyToken } from '../middleware/verifyToken.js';
 
 export const CommonApi = exp.Router();
 

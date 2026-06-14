@@ -1,0 +1,11 @@
+export const pageBackground = "min-h-screen bg-slate-50 text-slate-900";
+export const formCard = "w-full max-w-xl rounded-[2rem] border border-slate-200 bg-white/95 p-8 shadow-[0_30px_80px_-45px_rgba(15,23,42,0.35)] backdrop-blur";
+export const formTitle = "text-3xl font-semibold text-slate-900 mb-6 text-center";
+export const formGroup = "mb-5";
+export const labelClass = "mb-2 block text-sm font-medium text-slate-700";
+export const inputClass = "w-full rounded-3xl border border-slate-300/90 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100";
+export const submitBtn = "mt-3 inline-flex w-full justify-center rounded-3xl bg-violet-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-violet-700";
+export const errorClass = "rounded-3xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700";
+export const mutedText = "text-sm text-slate-500";
+export const loadingClass = "mx-auto mt-20 rounded-3xl bg-slate-900 px-6 py-4 text-center text-lg font-medium text-white shadow-lg shadow-slate-900/30";
+export const linkClass = "text-violet-600 hover:text-violet-500 font-medium";

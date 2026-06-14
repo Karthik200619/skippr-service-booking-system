@@ -1,7 +1,8 @@
 import exp from 'express'
 export const AdminApi = exp.Router()
 
-import { verifyToken } from '../middlewares/verifyToken.js'
+import { verifyToken } from '../middleware/verifyToken.js'
+
 import BlockModel from '../models/BlockModel.js'
 import FlatModel from '../models/FlatModel.js'
 import BookingModel from '../models/BookingModel.js'
@@ -14,6 +15,7 @@ AdminApi.post("/block",verifyToken("ADMIN"),async(req,res)=>{
     const {name,totalFloors,description}=req.body;
 
     // check if block already exists
+
     const existingBlock=await BlockModel.findOne({
         where:{name}
     });
