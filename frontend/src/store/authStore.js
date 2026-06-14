@@ -8,7 +8,7 @@ axios.defaults.withCredentials = true;
 export const useAuth = create((set) => ({
     // define the states
     currentUser: null,
-    loading: false,
+    loading: true,
     isAuthenticated: false,
     error: null,
 

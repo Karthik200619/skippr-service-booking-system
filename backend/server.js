@@ -1,6 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
+import cors from "cors";
 
 import { AdminApi } from "./apis/AdminApi.js";
 import { UserApi } from "./apis/UserApi.js";
@@ -11,6 +12,14 @@ import "./models/index.js";
 dotenv.config();
 
 const app = express();
+
+// cors
+app.use(cors({
+  origin: (origin, callback) => {
+    callback(null, true);
+  },
+  credentials: true
+}));
 
 // Middlewares
 // body parser middleware
