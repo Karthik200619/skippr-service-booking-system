@@ -7,15 +7,15 @@ export default defineConfig({
   server: {
     proxy: {
       '/common-api': {
-        target: 'http://localhost:4000',
+        target: 'https://skippr-service-booking-system.onrender.com',
         changeOrigin: true,
       },
       '/user-api': {
-        target: 'http://localhost:4000',
+        target: 'https://skippr-service-booking-system.onrender.com',
         changeOrigin: true,
       },
       '/admin-api': {
-        target: 'http://localhost:4000',
+        target: 'https://skippr-service-booking-system.onrender.com',
         changeOrigin: true,
       },
     },

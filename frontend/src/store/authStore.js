@@ -3,6 +3,10 @@
 import { create } from "zustand";
 import axios from 'axios';
 
+// Ensure axios is configured to use the deployed backend and send cookies.
+if (!axios.defaults.baseURL) {
+    axios.defaults.baseURL = 'https://skippr-service-booking-system.onrender.com';
+}
 axios.defaults.withCredentials = true;
 
 export const useAuth = create((set) => ({
