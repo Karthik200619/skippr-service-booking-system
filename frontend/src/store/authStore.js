@@ -3,6 +3,8 @@
 import { create } from "zustand";
 import axios from 'axios';
 
+axios.defaults.withCredentials = true;
+
 export const useAuth = create((set) => ({
     // define the states
     currentUser: null,

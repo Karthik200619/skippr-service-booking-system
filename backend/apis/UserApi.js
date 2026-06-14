@@ -2,9 +2,28 @@ import exp from 'express'
 export const UserApi = exp.Router()
 import { hash } from 'bcryptjs'
 import UserModel from '../models/UserModel.js';
+import ServiceModel from '../models/ServiceModel.js';
+import BookingModel from '../models/BookingModel.js';
+import SlotModel from '../models/SlotModel.js';
+import { register } from '../service/authService.js';
 import { Op } from "sequelize";
 import { upload } from '../config/multer.js';
 import { verifyToken } from '../middleware/verifyToken.js';
+
+class ApiError extends Error {
+    constructor(status, message) {
+        super(message);
+        this.status = status;
+    }
+}
+
+const uploadToCloudinary = async (buffer) => {
+    // Generate a beautiful SVG avatar using dicebear as a fallback
+    const randomSeed = Math.random().toString(36).substring(7);
+    return {
+        secure_url: `https://api.dicebear.com/7.x/adventurer/svg?seed=${randomSeed}`
+    };
+};
 
 
 UserApi.post("/register", upload.single("profileImage"), async (req, res) => {

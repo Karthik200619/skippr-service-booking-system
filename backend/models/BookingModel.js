@@ -16,38 +16,36 @@ const BookingModel = sequelize.define("Booking", {
             "WASHROOM_CLEANING",
             "DEEP_CLEANING"
         ),
-        allowNull: false,
-    },
-    status: {
-        type: DataTypes.ENUM(
-            "PENDING",
-            "APPROVED",
-            "REJECTED"
-        ),
-        defaultValue: "PENDING"
+        allowNull: true,
     },
 
-  bookingDate: {
+    bookingDate: {
         type: DataTypes.DATEONLY,
         allowNull: false,
     },
 
     timeSlot: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
     },
 
     status: {
         type: DataTypes.ENUM(
             "PENDING",
-            "ASSIGNED",
-            "COMPLETED"
+            "APPROVED",
+            "REJECTED"
         ),
         defaultValue: "PENDING",
     },
 
+    notes: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+    },
+
     remarks: {
         type: DataTypes.TEXT,
+        allowNull: true,
     },
 });
 

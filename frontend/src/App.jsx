@@ -5,6 +5,7 @@ import Register from "./components/Register";
 import UserDashBaord from "./components/UserDashBaord";
 import AdminDashBoard from "./components/AdminDashBoard";
 import Unauthorized from "./components/Unauthorized";
+import NotFound from "./components/NotFound";
 import RootLaylout from "./components/RootLaylout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { createBrowserRouter, RouterProvider } from "react-router";
@@ -43,7 +44,7 @@ const router = createBrowserRouter([
         ),
       },
       { path: "/unauthorized", element: <Unauthorized /> },
-      { path: "*", element: <Unauthorized /> },
+      { path: "*", element: <NotFound /> },
     ],
   },
 ]);

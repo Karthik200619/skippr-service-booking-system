@@ -6,6 +6,7 @@ import { AdminApi } from "./apis/AdminApi.js";
 import { UserApi } from "./apis/UserApi.js";
 import { CommonApi } from "./apis/CommonApi.js";
 import sequelize from "./config/db.js";
+import "./models/index.js";
 
 dotenv.config();
 

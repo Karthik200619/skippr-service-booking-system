@@ -52,7 +52,7 @@ function Register() {
     try{
 
       const res=await axios.post(
-        "http://localhost:4000/user-api/register",
+        "/user-api/register",
         formData,
         {
           withCredentials:true
