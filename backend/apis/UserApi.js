@@ -4,22 +4,54 @@ import { hash } from 'bcryptjs'
 import UserModel from '../models/UserModel.js';
 import { Op } from "sequelize";
 
-UserApi.post("/register", async (req, res) => {
-    const { fullName, email, mobile, password, profileImageUrl } = req.body;
-    //   check if user exists with the email or mobile
+
+
+UserApi.post("/register", upload.single("profileImage"), async (req, res) => {
+    const { fullName, email, mobile, password } = req.body;
+
+    // check if user exists with email or mobile
     const existingUser = await UserModel.findOne({
         where: {
-            [Op.or]: [{ email }, { mobile }],
-        },
+            [Op.or]: [
+                { email },
+                { mobile }
+            ]
+        }
     });
-    //   if exists dont allow
+
+    // if exists don't allow registration
     if (existingUser) {
         throw new ApiError(409, "User already exists");
     }
-    // call register that hashes password and return user without password
+
+    let profileImageUrl = null;
+
+    // upload profile image to cloudinary if provided
+    if (req.file) {
+        const result = await uploadToCloudinary(
+            req.file.buffer
+        );
+
+        profileImageUrl = result.secure_url;
+    }
+
+    // create user object
+    const userObj = {
+        fullName,
+        email,
+        mobile,
+        password,
+        profileImageUrl
+    };
+
+    // call register service
     const user = await register(userObj);
+
     // send response
-    res.status(201).json({ message: "Registration successful", payload: { user } });
+    res.status(201).json({
+        message: "Registration successful",
+        payload: { user }
+    });
 });
 
 // Get All active services
@@ -76,7 +108,7 @@ UserApi.get("/my-bookings", verifyToken("CUSTOMER"), async (req, res) => {
     res.status(200).json({ payload: { bookings } });
 });
 
-UserApi.get("/service-slots", verifyToken("CUSTOMER", "ADMIN"),async (req, res) => {
+UserApi.get("/service-slots", verifyToken("CUSTOMER", "ADMIN"), async (req, res) => {
     const { serviceId, bookingDate } = req.query;
 
     const slots = await SlotModel.findAll();
@@ -103,5 +135,5 @@ UserApi.get("/service-slots", verifyToken("CUSTOMER", "ADMIN"),async (req, res) 
         });
     }
 
-    res.status(200).json({payload: { slots: result }});
+    res.status(200).json({ payload: { slots: result } });
 });
