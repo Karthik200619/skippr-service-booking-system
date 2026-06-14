@@ -15,6 +15,7 @@ import { verifyToken } from '../middleware/verifyToken.js';
 import generateOTP from '../service/createPassCrypto.js';
 import sendemail from '../config/nodemailer.js';
 import { sendWhatsAppMessage } from '../service/whatsappService.js';
+import cloudinary from '../config/cloudinary.js';
 
 class ApiError extends Error {
     constructor(status, message) {
@@ -24,11 +25,24 @@ class ApiError extends Error {
 }
 
 const uploadToCloudinary = async (buffer) => {
-    // Generate a beautiful SVG avatar using dicebear as a fallback
-    const randomSeed = Math.random().toString(36).substring(7);
-    return {
-        secure_url: `https://api.dicebear.com/7.x/adventurer/svg?seed=${randomSeed}`
-    };
+    try {
+        return await new Promise((resolve, reject) => {
+            const uploadStream = cloudinary.uploader.upload_stream(
+                { folder: "skippr_profile_images" },
+                (error, result) => {
+                    if (error) return reject(error);
+                    resolve(result);
+                }
+            );
+            uploadStream.end(buffer);
+        });
+    } catch (err) {
+        console.error("Cloudinary upload failed, using Dicebear fallback:", err);
+        const randomSeed = Math.random().toString(36).substring(7);
+        return {
+            secure_url: `https://api.dicebear.com/7.x/adventurer/svg?seed=${randomSeed}`
+        };
+    }
 };
 
 
@@ -149,7 +163,7 @@ UserApi.get("/services", verifyToken("CUSTOMER", "ADMIN"), async (req, res) => {
 
 // Booking Service
 UserApi.post("/book-service", verifyToken("CUSTOMER"), async (req, res) => {
-    const { serviceId, slotId, bookingDate, notes } = req.body;
+    const { serviceId, slotId, bookingDate, notes, priority } = req.body;
 
     const existingBooking = await BookingModel.findOne({
         where: {
@@ -171,7 +185,8 @@ UserApi.post("/book-service", verifyToken("CUSTOMER"), async (req, res) => {
         serviceId,
         slotId,
         bookingDate,
-        notes
+        notes,
+        priority: priority || "MEDIUM"
     });
 
     // Fetch details for WhatsApp and Email notifications

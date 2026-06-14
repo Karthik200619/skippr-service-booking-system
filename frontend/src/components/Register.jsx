@@ -28,6 +28,8 @@ function Register() {
   const [loading,setLoading]=useState(false);
   const [error,setError]=useState(null);
   const [preview,setPreview]=useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [fileError, setFileError] = useState(null);
   
   const [blocks, setBlocks] = useState([]);
   const [flats, setFlats] = useState([]);
@@ -62,8 +64,14 @@ function Register() {
   };
 
   const onUserRegister=async(newUser)=>{
+    if (!selectedFile) {
+      setFileError("Profile image is required");
+      return;
+    }
+
     setLoading(true);
     setError(null);
+    setFileError(null);
 
     const formData=new FormData();
 
@@ -73,13 +81,7 @@ function Register() {
     formData.append("password",newUser.password);
     formData.append("occupantType",newUser.occupantType);
     formData.append("flatId",newUser.flatId);
-
-    if(newUser.profileImageUrl?.[0]){
-      formData.append(
-        "profileImage",
-        newUser.profileImageUrl[0]
-      );
-    }
+    formData.append("profileImage", selectedFile);
 
     try{
 
@@ -319,35 +321,40 @@ function Register() {
             <input
               type="file"
               accept="image/png,image/jpeg"
-              {...register("profileImageUrl",{
-                required:"Profile image is required"
-              })}
-              onChange={(e)=>{
+              onChange={(e) => {
+                const file = e.target.files[0];
 
-                const file=e.target.files[0];
-
-                if(!file) return;
-
-                if(!["image/jpeg","image/png"].includes(file.type)){
-                  setError("Only JPG and PNG allowed");
+                if (!file) {
+                  setSelectedFile(null);
+                  setFileError("Profile image is required");
+                  setPreview(null);
                   return;
                 }
 
-                if(file.size>2*1024*1024){
-                  setError("File size must be less than 2MB");
+                if (!["image/jpeg", "image/png"].includes(file.type)) {
+                  setFileError("Only JPG and PNG allowed");
+                  setSelectedFile(null);
+                  setPreview(null);
                   return;
                 }
 
-                setError(null);
+                if (file.size > 2 * 1024 * 1024) {
+                  setFileError("File size must be less than 2MB");
+                  setSelectedFile(null);
+                  setPreview(null);
+                  return;
+                }
 
-                const previewUrl=URL.createObjectURL(file);
+                setFileError(null);
+                setSelectedFile(file);
+                const previewUrl = URL.createObjectURL(file);
                 setPreview(previewUrl);
               }}
             />
 
-            {errors.profileImageUrl&&(
+            {fileError && (
               <p className={errorClass}>
-                {errors.profileImageUrl.message}
+                {fileError}
               </p>
             )}
 

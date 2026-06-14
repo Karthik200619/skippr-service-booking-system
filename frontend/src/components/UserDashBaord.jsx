@@ -19,6 +19,7 @@ function UserDashBaord() {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [selectedSlotId, setSelectedSlotId] = useState(null);
   const [notes, setNotes] = useState("");
+  const [priority, setPriority] = useState("MEDIUM");
   const [submittingBooking, setSubmittingBooking] = useState(false);
 
   // Initialization
@@ -102,13 +103,15 @@ function UserDashBaord() {
         serviceId: selectedService.id,
         slotId: selectedSlotId,
         bookingDate,
-        notes
+        notes,
+        priority
       });
       toast.success("Booking requested successfully!");
       // Reset form
       setSelectedService(null);
       setNotes("");
       setSelectedSlotId(null);
+      setPriority("MEDIUM");
       // Reload bookings list
       loadBookings();
     } catch (err) {
@@ -283,9 +286,32 @@ function UserDashBaord() {
               </div>
             )}
 
-            {/* Step 4: Notes */}
+            {/* Step 4: Select Priority */}
             <div className="space-y-3">
-              <label htmlFor="booking-notes" className="block text-sm font-bold text-slate-700">4. Optional Notes</label>
+              <label className="block text-sm font-bold text-slate-700">4. Select Priority</label>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: "Low", value: "LOW", hoverBg: "hover:border-emerald-500 hover:bg-emerald-50/20 text-emerald-700 border-emerald-100", activeBg: "bg-emerald-600 text-white border-emerald-600 shadow-sm shadow-emerald-100" },
+                  { label: "Medium", value: "MEDIUM", hoverBg: "hover:border-amber-500 hover:bg-amber-50/20 text-amber-700 border-amber-100", activeBg: "bg-amber-500 text-white border-amber-500 shadow-sm shadow-amber-100" },
+                  { label: "High", value: "HIGH", hoverBg: "hover:border-rose-500 hover:bg-rose-50/20 text-rose-700 border-rose-100", activeBg: "bg-rose-600 text-white border-rose-600 shadow-sm shadow-rose-100" }
+                ].map((p) => (
+                  <button
+                    key={p.value}
+                    type="button"
+                    onClick={() => setPriority(p.value)}
+                    className={`rounded-2xl border px-4 py-2.5 text-xs font-bold transition-all ${
+                      priority === p.value ? p.activeBg : `border-slate-200 bg-slate-50/30 text-slate-700 ${p.hoverBg}`
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Step 5: Notes */}
+            <div className="space-y-3">
+              <label htmlFor="booking-notes" className="block text-sm font-bold text-slate-700">5. Optional Notes</label>
               <textarea
                 id="booking-notes"
                 placeholder="Provide additional details (e.g. door key location, specific issues)..."
@@ -343,7 +369,18 @@ function UserDashBaord() {
                       <span className="text-2xl">{getServiceIcon(booking.Service?.name || "")}</span>
                       <div>
                         <h4 className="text-sm font-bold text-slate-900">{booking.Service?.name || "Service"}</h4>
-                        <p className="text-xs text-slate-500 mt-0.5">{booking.bookingDate}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <p className="text-xs text-slate-500">{booking.bookingDate}</p>
+                          <span className={`inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                            booking.priority === "HIGH"
+                              ? "bg-rose-100 text-rose-700"
+                              : booking.priority === "MEDIUM"
+                              ? "bg-amber-100 text-amber-700"
+                              : "bg-emerald-100 text-emerald-700"
+                          }`}>
+                            {booking.priority || "MEDIUM"}
+                          </span>
+                        </div>
                       </div>
                     </div>
                     <span

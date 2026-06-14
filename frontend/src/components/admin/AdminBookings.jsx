@@ -5,11 +5,14 @@ function AdminBookings() {
   const [bookings, setBookings] = useState([]);
   const [statusFilter, setStatusFilter] = useState("ALL");
   
-  // New Block and Slot Filter State
+  // New Block, Slot, Service and Date Filter State
   const [blocks, setBlocks] = useState([]);
   const [slots, setSlots] = useState([]);
+  const [services, setServices] = useState([]);
   const [blockFilter, setBlockFilter] = useState("ALL");
   const [slotFilter, setSlotFilter] = useState("ALL");
+  const [serviceFilter, setServiceFilter] = useState("ALL");
+  const [dateFilter, setDateFilter] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
@@ -28,6 +31,11 @@ function AdminBookings() {
     axios.get("/common-api/slots")
       .then(res => setSlots(res.data.payload.slots || []))
       .catch(err => console.error("Error fetching slots:", err));
+
+    // Load services for filter
+    axios.get("/user-api/services")
+      .then(res => setServices(res.data.payload.services || []))
+      .catch(err => console.error("Error fetching services:", err));
   }, []);
 
   const showMessage = (text) => {
@@ -63,7 +71,7 @@ function AdminBookings() {
     }
   };
 
-  // Client-side filtering for Block and Slot Time
+  // Client-side filtering for Block, Slot Time, Service and Date
   const filteredBookings = bookings.filter((booking) => {
     if (blockFilter !== "ALL") {
       const blockName = booking.User?.flat?.block?.name;
@@ -72,6 +80,13 @@ function AdminBookings() {
     if (slotFilter !== "ALL") {
       const slotTime = booking.Slot ? `${booking.Slot.startTime} - ${booking.Slot.endTime}` : "";
       if (slotTime !== slotFilter) return false;
+    }
+    if (serviceFilter !== "ALL") {
+      const serviceName = booking.Service?.name;
+      if (serviceName !== serviceFilter) return false;
+    }
+    if (dateFilter) {
+      if (booking.bookingDate !== dateFilter) return false;
     }
     return true;
   });
@@ -140,11 +155,37 @@ function AdminBookings() {
             </select>
           </div>
 
-          {(blockFilter !== "ALL" || slotFilter !== "ALL") && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Service:</span>
+            <select
+              value={serviceFilter}
+              onChange={(e) => setServiceFilter(e.target.value)}
+              className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium focus:border-violet-500 focus:outline-none"
+            >
+              <option value="ALL">All Services</option>
+              {services.map((s) => (
+                <option key={s.id} value={s.name}>{s.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Date:</span>
+            <input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium focus:border-violet-500 focus:outline-none"
+            />
+          </div>
+
+          {(blockFilter !== "ALL" || slotFilter !== "ALL" || serviceFilter !== "ALL" || dateFilter !== "") && (
             <button
               onClick={() => {
                 setBlockFilter("ALL");
                 setSlotFilter("ALL");
+                setServiceFilter("ALL");
+                setDateFilter("");
               }}
               className="sm:ml-auto text-xs font-semibold text-violet-650 hover:text-violet-800 transition"
             >
@@ -189,7 +230,18 @@ function AdminBookings() {
                       <div className="text-xs text-slate-400 mt-0.5">{booking.User?.email}</div>
                       <div className="text-xs text-slate-400">{booking.User?.mobile}</div>
                     </td>
-                    <td className="py-4 pr-4 align-top text-slate-800 font-medium">{booking.Service?.name || "-"}</td>
+                    <td className="py-4 pr-4 align-top text-slate-800">
+                      <div className="font-semibold text-slate-900">{booking.Service?.name || "-"}</div>
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider mt-1 ${
+                        booking.priority === "HIGH"
+                          ? "bg-rose-100 text-rose-800"
+                          : booking.priority === "MEDIUM"
+                          ? "bg-amber-100 text-amber-800"
+                          : "bg-emerald-100 text-emerald-800"
+                      }`}>
+                        {booking.priority || "MEDIUM"}
+                      </span>
+                    </td>
                     <td className="py-4 pr-4 align-top text-slate-800 font-medium">
                       {booking.Slot?.startTime} - {booking.Slot?.endTime}
                     </td>

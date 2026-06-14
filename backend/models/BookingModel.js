@@ -47,6 +47,12 @@ const BookingModel = sequelize.define("Booking", {
         type: DataTypes.TEXT,
         allowNull: true,
     },
+
+    priority: {
+        type: DataTypes.ENUM("LOW", "MEDIUM", "HIGH"),
+        defaultValue: "MEDIUM",
+        allowNull: false,
+    },
 });
 
 export default BookingModel;

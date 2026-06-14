@@ -5,6 +5,7 @@ import axios from 'axios';
 function AdminFlats() {
   const [blocks, setBlocks] = useState([]);
   const [flats, setFlats] = useState([]);
+  const [blockFilter, setBlockFilter] = useState("ALL");
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [message, setMessage] = useState(null);
@@ -152,12 +153,27 @@ function AdminFlats() {
 
         {/* Flats List */}
         <div className="rounded-[2rem] border border-slate-200 bg-white/95 p-8 shadow-[0_24px_60px_-35px_rgba(15,23,42,0.35)]">
-          <div className="flex items-center justify-between gap-3 mb-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
             <div>
               <h2 className="text-xl font-semibold text-slate-900">Flats</h2>
               <p className="mt-1 text-sm text-slate-500">Review the flats assigned to each block.</p>
+              
+              {/* Block Filter Dropdown */}
+              <div className="flex items-center gap-2 mt-2">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Filter Block:</span>
+                <select
+                  value={blockFilter}
+                  onChange={(e) => setBlockFilter(e.target.value)}
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium focus:border-violet-500 focus:outline-none"
+                >
+                  <option value="ALL">All Blocks</option>
+                  {blocks.map((b) => (
+                    <option key={b.id} value={b.id}>Block {b.name}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <button onClick={loadFlats} className="text-xs font-semibold text-violet-600 hover:text-violet-750">
+            <button onClick={loadFlats} className="text-xs font-semibold text-violet-600 hover:text-violet-750 self-start sm:self-center">
               🔄 Refresh
             </button>
           </div>
@@ -165,23 +181,25 @@ function AdminFlats() {
           <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
             {fetching ? (
               <p className="text-sm text-slate-500 py-4">Loading flats list...</p>
-            ) : flats.length === 0 ? (
-              <div className="rounded-3xl border border-dashed border-slate-300 p-5 text-sm text-slate-500">No flats created yet.</div>
+            ) : flats.filter(f => blockFilter === "ALL" || String(f.blockId) === String(blockFilter)).length === 0 ? (
+              <div className="rounded-3xl border border-dashed border-slate-300 p-5 text-sm text-slate-500">No flats found matching selected block.</div>
             ) : (
-              flats.map((flat) => (
-                <div key={flat.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <h3 className="text-base font-semibold text-slate-900">{flat.flatNumber} — {flat.bhkType}</h3>
-                      <p className="mt-1 text-sm text-slate-650">Block: {flat.block?.name ?? flat.blockId}</p>
-                    </div>
-                    <div className="flex flex-wrap gap-2 text-sm text-slate-700">
-                      <span className="rounded-full bg-white px-3 py-1 shadow-sm">Floor {flat.floor}</span>
-                      <span className="rounded-full bg-white px-3 py-1 shadow-sm">Parking {flat.parkingSlot || "-"}</span>
+              flats
+                .filter((flat) => blockFilter === "ALL" || String(flat.blockId) === String(blockFilter))
+                .map((flat) => (
+                  <div key={flat.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-4 cursor-pointer hover:border-violet-500 hover:bg-violet-50/20 transition-all duration-200">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <h3 className="text-base font-semibold text-slate-900">{flat.flatNumber} — {flat.bhkType}</h3>
+                        <p className="mt-1 text-sm text-slate-650">Block: {flat.block?.name ?? flat.blockId}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2 text-sm text-slate-700">
+                        <span className="rounded-full bg-white px-3 py-1 shadow-sm">Floor {flat.floor}</span>
+                        <span className="rounded-full bg-white px-3 py-1 shadow-sm">Parking {flat.parkingSlot || "-"}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                ))
             )}
           </div>
         </div>
