@@ -47,8 +47,8 @@ CommonApi.post("/login", async (req, res) => {
     const { user, token } = await authLogin(loginObj);
     // if the credentails match then save token as httpOnly Cookie
     res.cookie("token", token, {
-        sameSite: 'lax',
-        secure: false,
+        sameSite: 'none',
+        secure: true,
         httpOnly: true,
     })
     // send response
@@ -59,8 +59,8 @@ CommonApi.post("/logout", async (req, res) => {
     // to logout first clear token from cookie storage 
     res.clearCookie("token", {
         httpOnly: true,
-        sameSite: "lax",
-        secure: false
+        sameSite: "none",
+        secure: true
     });
 
     res.status(200).json({ message: "Logout successful" });
