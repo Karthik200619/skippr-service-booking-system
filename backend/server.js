@@ -15,10 +15,11 @@ const app = express();
 
 // cors
 app.use(cors({
-  origin: (origin, callback) => {
-    callback(null, true);
-  },
-  credentials: true
+ origin:[
+  "http://localhost:5173",
+  "https://your-vercel-app.vercel.app"
+ ],
+ credentials:true
 }));
 
 // Middlewares
@@ -41,8 +42,10 @@ const connectDB = async () => {
 
     await sequelize.sync({ alter: true });
 
-    //  first connect to db then server start listening
-    app.listen(process.env.PORT, () => {console.log(`Server started on port ${process.env.PORT}`);});
+    // Start listening only after the database is ready.
+    app.listen(process.env.PORT, () => {
+      console.log(`Server started on port ${process.env.PORT}`);
+    });
   } catch (err) {
     console.error("Database connection failed:", err);
     process.exit(1);
@@ -51,19 +54,16 @@ const connectDB = async () => {
 
 connectDB();
 
-//dealing with invalid path
-app.use((req, res, next) => {
-  console.log(req.url);
-  res.json({ message: `${req.url} is invalid path` });
+// Handle invalid API paths with a JSON response.
+app.use((req, res) => {
+  res.status(404).json({ message: `${req.url} is invalid path` });
 });
 
-//error handling middleware
+// Central error handling for validation, duplicate keys, and custom errors.
 app.use((err, req, res, next) => {
-  console.log("Error name:", err.name);
-  console.log("Error code:", err.code);
-  console.log("Full error:", err);
+  console.error("Server error:", err);
 
-  // mongoose validation error
+  // Sequelize validation error
   if (err.name === "ValidationError") {
     return res.status(400).json({
       message: "error occurred",

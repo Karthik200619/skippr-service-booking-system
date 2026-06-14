@@ -6,14 +6,8 @@ config();
 export const verifyToken = (...allowedRoles) => {
     return async (req, res, next) => {
         try {
-
-            console.log("cookies:", req.cookies);
-
-            console.log("Authorization:", req.headers.authorization);
-
+            // Read the JWT token from the cookie and reject if missing.
             const token = req.cookies.token;
-
-            console.log("Token:", token);
 
             if (!token) {
                 return res.status(401).json({

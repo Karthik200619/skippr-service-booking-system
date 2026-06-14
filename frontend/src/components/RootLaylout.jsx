@@ -8,6 +8,7 @@ import { useAuth } from "../store/authStore";
 function RootLaylout() {
   const checkAuth = useAuth((state) => state.checkAuth);
 
+  // Run auth check once when the layout mounts to restore user session.
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
@@ -15,10 +16,15 @@ function RootLaylout() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <Header />
+
+      {/* Page content rendered by nested routes */}
       <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <Outlet />
       </main>
+
       <Footer />
+
+      {/* Global toast provider for success/error notifications */}
       <Toaster
         position="top-right"
         toastOptions={{

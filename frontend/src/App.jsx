@@ -17,6 +17,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import VerifyEmail from "./components/VerifyEmail";
 import { createBrowserRouter, RouterProvider } from "react-router";
 
+// Frontend router configuration: public pages are available to all users.
+// Protected pages are wrapped with ProtectedRoute and require specific roles.
 const router = createBrowserRouter([
   {
     path: "/",

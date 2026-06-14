@@ -4,6 +4,7 @@ import { Navigate } from "react-router";
 function ProtectedRoute({ children, allowedRoles }) {
   const { loading, currentUser, isAuthenticated } = useAuth();
 
+  // Wait for auth state initialization before rendering protected pages.
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center px-4 text-slate-600">
@@ -12,10 +13,12 @@ function ProtectedRoute({ children, allowedRoles }) {
     );
   }
 
+  // Redirect unauthenticated users to login.
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
+  // Enforce role-based access for protected routes.
   if (allowedRoles && currentUser && !allowedRoles.includes(currentUser.role)) {
     return <Navigate to="/unauthorized" replace />;
   }
