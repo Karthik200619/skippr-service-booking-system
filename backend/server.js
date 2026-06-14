@@ -17,7 +17,7 @@ const app = express();
 app.use(cors({
  origin:[
   "http://localhost:5173",
-  "https://your-vercel-app.vercel.app"
+  "https://skippr-service-booking-system.vercel.app"
  ],
  credentials:true
 }));
