@@ -6,6 +6,8 @@ import BookingModel from "./BookingModel.js";
 import ServiceModel from "./ServiceModel.js";
 import OtpModel from "./OtpModel.js";
 
+import HelpQueryModel from "./HelpQueryModel.js";
+
 // Block -> Flats
 BlockModel.hasMany(FlatModel, {
   foreignKey: "blockId",
@@ -48,4 +50,15 @@ BookingModel.belongsTo(SlotModel,{
     foreignKey:"slotId"
 });
 
-export { BlockModel, FlatModel, UserModel, OtpModel };
+// User -> HelpQuery
+UserModel.hasMany(HelpQueryModel, {
+  foreignKey: "userId",
+  as: "helpQueries",
+});
+
+HelpQueryModel.belongsTo(UserModel, {
+  foreignKey: "userId",
+  as: "user",
+});
+
+export { BlockModel, FlatModel, UserModel, OtpModel, HelpQueryModel };

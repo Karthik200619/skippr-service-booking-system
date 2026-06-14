@@ -243,7 +243,7 @@ function UserDashBaord() {
                 ) : (
                   <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
                     {slots.map((slot) => {
-                      const isAvailable = slot.status === "AVAILABLE";
+                      const isAvailable = slot.status === "AVAILABLE" || slot.status === "PENDING";
                       return (
                         <button
                           key={slot.slotId}
@@ -264,14 +264,16 @@ function UserDashBaord() {
                           </div>
                           <span
                             className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${
-                              !isAvailable
+                              slot.status === "APPROVED"
                                 ? "bg-rose-100 text-rose-700"
+                                : slot.status === "PENDING"
+                                ? (selectedSlotId === slot.slotId ? "bg-white/20 text-white" : "bg-amber-100 text-amber-800")
                                 : selectedSlotId === slot.slotId
                                 ? "bg-white/20 text-white"
                                 : "bg-emerald-100 text-emerald-800"
                             }`}
                           >
-                            {!isAvailable ? slot.status : "Available"}
+                            {slot.status === "APPROVED" ? "APPROVED" : slot.status === "PENDING" ? "PENDING" : "Available"}
                           </span>
                         </button>
                       );

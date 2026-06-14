@@ -2,10 +2,12 @@ import exp from 'express'
 export const UserApi = exp.Router()
 import { hash } from 'bcryptjs'
 import UserModel from '../models/UserModel.js';
+import FlatModel from '../models/FlatModel.js';
 import ServiceModel from '../models/ServiceModel.js';
 import BookingModel from '../models/BookingModel.js';
 import SlotModel from '../models/SlotModel.js';
 import OtpModel from '../models/OtpModel.js';
+import HelpQueryModel from '../models/HelpQueryModel.js';
 import { register } from '../service/authService.js';
 import { Op } from "sequelize";
 import { upload } from '../config/multer.js';
@@ -31,7 +33,28 @@ const uploadToCloudinary = async (buffer) => {
 
 
 UserApi.post("/register", upload.single("profileImage"), async (req, res) => {
-    const { fullName, email, mobile, password } = req.body;
+    const { fullName, email, mobile, password, occupantType, flatId } = req.body;
+
+    if (!occupantType || !flatId) {
+        throw new ApiError(400, "Occupant type and Flat are required");
+    }
+
+    const flat = await FlatModel.findByPk(flatId);
+    if (!flat) {
+        throw new ApiError(404, "Selected flat not found");
+    }
+
+    // Check if flat is already registered by another occupant
+    const existingOccupant = await UserModel.findOne({
+        where: {
+            flatId,
+            approvalStatus: ["PENDING", "APPROVED"]
+        }
+    });
+
+    if (existingOccupant) {
+        throw new ApiError(409, "This flat is already registered by another occupant.");
+    }
 
     // check if user exists with email or mobile
     const existingUser = await UserModel.findOne({
@@ -65,7 +88,10 @@ UserApi.post("/register", upload.single("profileImage"), async (req, res) => {
         email,
         mobile,
         password,
-        profileImageUrl
+        profileImageUrl,
+        occupantType,
+        flatId,
+        approvalStatus: "PENDING"
     };
 
     // call register service
@@ -148,18 +174,45 @@ UserApi.post("/book-service", verifyToken("CUSTOMER"), async (req, res) => {
         notes
     });
 
-    // Fetch details for WhatsApp message
+    // Fetch details for WhatsApp and Email notifications
     try {
         const user = await UserModel.findByPk(req.user.userId);
         const service = await ServiceModel.findByPk(serviceId);
         const slot = await SlotModel.findByPk(slotId);
 
         if (user && service && slot) {
+            // Send WhatsApp message
             const message = `Hello ${user.fullName},\n\nYour booking for ${service.name} on ${bookingDate} (${slot.startTime} - ${slot.endTime}) has been received successfully.\n\nStatus: PENDING\n\nWe will notify you once the admin reviews and updates your booking. Thank you for choosing Skippr!`;
             await sendWhatsAppMessage(user.mobile, message);
+
+            // Send Email notification
+            const mailMessage = `
+                <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                    <h2 style="color: #4F46E5; margin-bottom: 20px;">Booking Request Received!</h2>
+                    <p style="font-size: 16px; line-height: 1.6;">Hello ${user.fullName},</p>
+                    <p style="font-size: 16px; line-height: 1.6;">We have received your booking request for <strong>${service.name}</strong>.</p>
+                    
+                    <div style="background-color: #F8FAFC; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #E2E8F0;">
+                        <p style="margin: 5px 0; font-size: 14px;"><strong>Date:</strong> ${bookingDate}</p>
+                        <p style="margin: 5px 0; font-size: 14px;"><strong>Time:</strong> ${slot.startTime} - ${slot.endTime}</p>
+                        <p style="margin: 5px 0; font-size: 14px;"><strong>Status:</strong> <span style="color: #D97706; font-weight: bold;">PENDING ADMIN APPROVAL</span></p>
+                    </div>
+
+                    <div style="background-color: #ECFDF5; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #A7F3D0;">
+                        <p style="margin: 0; font-size: 14px; color: #065F46; line-height: 1.6;">
+                            <strong>WhatsApp Updates:</strong> To receive future updates and booking confirmations directly on WhatsApp, please send the message <strong>"join shout-growth"</strong> to <strong>+14155238886</strong>.
+                        </p>
+                    </div>
+
+                    <p style="font-size: 14px; color: #6B7280; margin-top: 20px;">We will notify you once the admin reviews and updates your booking.</p>
+                    <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+                    <p style="font-size: 12px; color: #9CA3AF; text-align: center;">Skippr Service Booking System &copy; 2026</p>
+                </div>
+            `;
+            await sendemail(user.email, `Booking Received: ${service.name}`, mailMessage);
         }
     } catch (wsErr) {
-        console.error("Failed to send WhatsApp message:", wsErr);
+        console.error("Failed to send notifications:", wsErr);
     }
 
     res.status(201).json({ message: "Booking created successfully", payload: { booking } });
@@ -186,23 +239,39 @@ UserApi.get("/service-slots", verifyToken("CUSTOMER", "ADMIN"), async (req, res)
     const result = [];
 
     for (const slot of slots) {
-
-        const booking = await BookingModel.findOne({
+        const approvedBooking = await BookingModel.findOne({
             where: {
                 serviceId,
                 slotId: slot.id,
-                bookingDate
+                bookingDate,
+                status: "APPROVED"
             }
         });
 
-        result.push({
-            slotId: slot.id,
-            startTime: slot.startTime,
-            endTime: slot.endTime,
-            status: booking
-                ? booking.status
-                : "AVAILABLE"
-        });
+        if (approvedBooking) {
+            result.push({
+                slotId: slot.id,
+                startTime: slot.startTime,
+                endTime: slot.endTime,
+                status: "APPROVED"
+            });
+        } else {
+            const pendingBooking = await BookingModel.findOne({
+                where: {
+                    serviceId,
+                    slotId: slot.id,
+                    bookingDate,
+                    status: "PENDING"
+                }
+            });
+
+            result.push({
+                slotId: slot.id,
+                startTime: slot.startTime,
+                endTime: slot.endTime,
+                status: pendingBooking ? "PENDING" : "AVAILABLE"
+            });
+        }
     }
 
     res.status(200).json({ payload: { slots: result } });
@@ -298,4 +367,25 @@ UserApi.post("/resend-otp", async (req, res) => {
     }
 
     res.status(200).json({ message: "A new OTP has been sent to your email." });
+});
+
+// Submit a Help Query
+UserApi.post("/help-queries", verifyToken("CUSTOMER"), async (req, res) => {
+    try {
+        const { subject, message } = req.body;
+        if (!subject || !message) {
+            return res.status(400).json({ message: "Subject and Message are required" });
+        }
+
+        const query = await HelpQueryModel.create({
+            userId: req.user.userId,
+            subject,
+            message,
+            status: "PENDING"
+        });
+
+        res.status(201).json({ message: "Help query submitted successfully", payload: { query } });
+    } catch (error) {
+        res.status(500).json({ message: "Failed to submit help query", error: error.message });
+    }
 });

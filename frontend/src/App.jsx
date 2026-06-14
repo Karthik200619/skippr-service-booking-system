@@ -4,6 +4,12 @@ import Login from "./components/Login";
 import Register from "./components/Register";
 import UserDashBaord from "./components/UserDashBaord";
 import AdminDashBoard from "./components/AdminDashBoard";
+import AdminOverview from "./components/admin/AdminOverview";
+import AdminBlocks from "./components/admin/AdminBlocks";
+import AdminFlats from "./components/admin/AdminFlats";
+import AdminBookings from "./components/admin/AdminBookings";
+import AdminUsers from "./components/admin/AdminUsers";
+import AdminHelpQueries from "./components/admin/AdminHelpQueries";
 import Unauthorized from "./components/Unauthorized";
 import NotFound from "./components/NotFound";
 import RootLaylout from "./components/RootLaylout";
@@ -47,6 +53,14 @@ const router = createBrowserRouter([
             <AdminDashBoard />
           </ProtectedRoute>
         ),
+        children: [
+          { index: true, element: <AdminOverview /> },
+          { path: "blocks", element: <AdminBlocks /> },
+          { path: "flats", element: <AdminFlats /> },
+          { path: "bookings", element: <AdminBookings /> },
+          { path: "users", element: <AdminUsers /> },
+          { path: "queries", element: <AdminHelpQueries /> },
+        ]
       },
       { path: "/unauthorized", element: <Unauthorized /> },
       { path: "*", element: <NotFound /> },

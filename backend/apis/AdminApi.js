@@ -11,6 +11,7 @@ import UserModel from '../models/UserModel.js'
 import ServiceModel from '../models/ServiceModel.js'
 import SlotModel from '../models/SlotModel.js'
 import { sendWhatsAppMessage } from '../service/whatsappService.js'
+import HelpQueryModel from '../models/HelpQueryModel.js'
 
 // Create Block
 AdminApi.post("/block",verifyToken("ADMIN"),async(req,res)=>{
@@ -124,7 +125,14 @@ AdminApi.get("/bookings",verifyToken("ADMIN"),async(req,res)=>{
         include:[
             {
                 model:UserModel,
-                attributes:["id","fullName","email","mobile"]
+                attributes:["id","fullName","email","mobile","flatId"],
+                include:[
+                    {
+                        model:FlatModel,
+                        as:"flat",
+                        include:["block"]
+                    }
+                ]
             },
             {
                 model:ServiceModel
@@ -269,4 +277,161 @@ AdminApi.patch("/bookings/:bookingId/reject-others", verifyToken("ADMIN"), async
     res.status(200).json({
         message: `Rejected all other pending bookings (${rejectedCount}) for this slot.`
     });
+});
+
+// Get customer users with filter
+AdminApi.get("/users", verifyToken("ADMIN"), async (req, res) => {
+    try {
+        const where = { role: "CUSTOMER" };
+        if (req.query.approvalStatus && req.query.approvalStatus !== "ALL") {
+            where.approvalStatus = req.query.approvalStatus;
+        }
+        const users = await UserModel.findAll({
+            where,
+            include: [
+                {
+                    model: FlatModel,
+                    as: "flat",
+                    include: ["block"]
+                }
+            ]
+        });
+        res.status(200).json({ payload: { users } });
+    } catch (error) {
+        res.status(500).json({ message: "Failed to fetch users", error: error.message });
+    }
+});
+
+// Approve User Registration
+AdminApi.patch("/users/:userId/approve", verifyToken("ADMIN"), async (req, res) => {
+    try {
+        const user = await UserModel.findByPk(req.params.userId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        user.approvalStatus = "APPROVED";
+        await user.save();
+        res.status(200).json({ message: "User approved successfully" });
+    } catch (error) {
+        res.status(500).json({ message: "Failed to approve user", error: error.message });
+    }
+});
+
+// Reject User Registration
+AdminApi.patch("/users/:userId/reject", verifyToken("ADMIN"), async (req, res) => {
+    try {
+        const user = await UserModel.findByPk(req.params.userId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        user.approvalStatus = "REJECTED";
+        await user.save();
+        res.status(200).json({ message: "User rejected successfully" });
+    } catch (error) {
+        res.status(500).json({ message: "Failed to reject user", error: error.message });
+    }
+});
+
+// Edit User Details
+AdminApi.put("/users/:userId", verifyToken("ADMIN"), async (req, res) => {
+    try {
+        const { fullName, email, mobile, occupantType, flatId } = req.body;
+        const userId = req.params.userId;
+
+        const user = await UserModel.findByPk(userId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Validate unique email
+        if (email && email !== user.email) {
+            const emailExists = await UserModel.findOne({ where: { email, id: { [Op.ne]: userId } } });
+            if (emailExists) {
+                return res.status(409).json({ message: "Email is already in use by another user" });
+            }
+        }
+
+        // Validate unique mobile
+        if (mobile && mobile !== user.mobile) {
+            const mobileExists = await UserModel.findOne({ where: { mobile, id: { [Op.ne]: userId } } });
+            if (mobileExists) {
+                return res.status(409).json({ message: "Mobile number is already in use by another user" });
+            }
+        }
+
+        // Validate flat occupant assignment
+        if (flatId && flatId !== user.flatId) {
+            const flat = await FlatModel.findByPk(flatId);
+            if (!flat) {
+                return res.status(404).json({ message: "Selected flat not found" });
+            }
+
+            const existingOccupant = await UserModel.findOne({
+                where: {
+                    flatId,
+                    approvalStatus: ["PENDING", "APPROVED"],
+                    id: { [Op.ne]: userId }
+                }
+            });
+
+            if (existingOccupant) {
+                return res.status(409).json({ message: "This flat is already registered by another occupant." });
+            }
+        }
+
+        // Update fields
+        user.fullName = fullName || user.fullName;
+        user.email = email || user.email;
+        user.mobile = mobile || user.mobile;
+        user.occupantType = occupantType || user.occupantType;
+        if (flatId) {
+            user.flatId = flatId;
+        }
+
+        await user.save();
+        res.status(200).json({ message: "Resident details updated successfully", payload: { user } });
+    } catch (error) {
+        res.status(500).json({ message: "Failed to update resident details", error: error.message });
+    }
+});
+
+// Get all Help Queries
+AdminApi.get("/help-queries", verifyToken("ADMIN"), async (req, res) => {
+    try {
+        const queries = await HelpQueryModel.findAll({
+            include: [
+                {
+                    model: UserModel,
+                    as: "user",
+                    attributes: ["id", "fullName", "email", "mobile"],
+                    include: [
+                        {
+                            model: FlatModel,
+                            as: "flat",
+                            include: ["block"]
+                        }
+                    ]
+                }
+            ],
+            order: [["createdAt", "DESC"]]
+        });
+        res.status(200).json({ payload: { queries } });
+    } catch (error) {
+        res.status(500).json({ message: "Failed to fetch help queries", error: error.message });
+    }
+});
+
+// Resolve a Help Query
+AdminApi.patch("/help-queries/:queryId/resolve", verifyToken("ADMIN"), async (req, res) => {
+    try {
+        const query = await HelpQueryModel.findByPk(req.params.queryId);
+        if (!query) {
+            return res.status(404).json({ message: "Help query not found" });
+        }
+        query.status = "RESOLVED";
+        await query.save();
+        res.status(200).json({ message: "Help query resolved successfully" });
+    } catch (error) {
+        res.status(500).json({ message: "Failed to resolve help query", error: error.message });
+    }
 });

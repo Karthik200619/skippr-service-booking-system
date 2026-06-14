@@ -28,8 +28,38 @@ function Register() {
   const [loading,setLoading]=useState(false);
   const [error,setError]=useState(null);
   const [preview,setPreview]=useState(null);
+  
+  const [blocks, setBlocks] = useState([]);
+  const [flats, setFlats] = useState([]);
+  const [selectedBlockId, setSelectedBlockId] = useState("");
 
   const navigate=useNavigate();
+
+  useEffect(() => {
+    const fetchBlocks = async () => {
+      try {
+        const res = await axios.get("/common-api/blocks");
+        setBlocks(res.data.payload.blocks || []);
+      } catch (err) {
+        console.error("Failed to load blocks:", err);
+      }
+    };
+    fetchBlocks();
+  }, []);
+
+  const handleBlockChange = async (e) => {
+    const blockId = e.target.value;
+    setSelectedBlockId(blockId);
+    setFlats([]);
+    if (blockId) {
+      try {
+        const res = await axios.get(`/common-api/flats/by-block/${blockId}`);
+        setFlats(res.data.payload.flats || []);
+      } catch (err) {
+        console.error("Failed to load flats:", err);
+      }
+    }
+  };
 
   const onUserRegister=async(newUser)=>{
     setLoading(true);
@@ -41,6 +71,8 @@ function Register() {
     formData.append("email",newUser.email);
     formData.append("mobile",newUser.mobile);
     formData.append("password",newUser.password);
+    formData.append("occupantType",newUser.occupantType);
+    formData.append("flatId",newUser.flatId);
 
     if(newUser.profileImageUrl?.[0]){
       formData.append(
@@ -207,6 +239,73 @@ function Register() {
             {errors.password&&(
               <p className={errorClass}>
                 {errors.password.message}
+              </p>
+            )}
+          </div>
+
+          {/* Occupant Type */}
+          <div className={formGroup}>
+            <label className={labelClass}>
+              Occupant Type
+            </label>
+            <select
+              className={inputClass}
+              {...register("occupantType",{
+                required:"Occupant type is required"
+              })}
+            >
+              <option value="">Select occupant type</option>
+              <option value="OWNER">Owner</option>
+              <option value="TENANT">Tenant</option>
+            </select>
+            {errors.occupantType&&(
+              <p className={errorClass}>
+                {errors.occupantType.message}
+              </p>
+            )}
+          </div>
+
+          {/* Block Selection */}
+          <div className={formGroup}>
+            <label className={labelClass}>
+              Block
+            </label>
+            <select
+              className={inputClass}
+              value={selectedBlockId}
+              onChange={handleBlockChange}
+            >
+              <option value="">Select block</option>
+              {blocks.map((block) => (
+                <option key={block.id} value={block.id}>
+                  {block.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Flat Selection */}
+          <div className={formGroup}>
+            <label className={labelClass}>
+              Flat
+            </label>
+            <select
+              className={inputClass}
+              disabled={!selectedBlockId}
+              {...register("flatId",{
+                required:"Flat selection is required"
+              })}
+            >
+              <option value="">Select flat</option>
+              {flats.map((flat) => (
+                <option key={flat.id} value={flat.id}>
+                  {flat.flatNumber} ({flat.bhkType})
+                </option>
+              ))}
+            </select>
+            {errors.flatId&&(
+              <p className={errorClass}>
+                {errors.flatId.message}
               </p>
             )}
           </div>

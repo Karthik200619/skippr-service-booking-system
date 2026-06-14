@@ -47,6 +47,16 @@ const UserModel = sequelize.define(
       defaultValue: "CUSTOMER",
     },
 
+    occupantType: {
+      type: DataTypes.ENUM("OWNER", "TENANT"),
+      allowNull: true,
+    },
+
+    approvalStatus: {
+      type: DataTypes.ENUM("PENDING", "APPROVED", "REJECTED"),
+      defaultValue: "PENDING",
+    },
+
     flatId: {
       type: DataTypes.INTEGER,
       allowNull: true,
